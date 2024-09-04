@@ -3,16 +3,23 @@
   hosts: localhost
   become: yes
   tasks:
-    - name: Update the system and install required packages
+    - name: Update the system
       apt:
         update_cache: yes
+
+    - name: Upgrade all packages
+      apt:
         upgrade: dist
-        name: 
+
+    - name: Install required packages
+      apt:
+        name:
           - curl
           - wget
           - sudo
+          - git
         state: present
-    
+
     - name: Download the CloudPanel installer script
       get_url:
         url: https://installer.cloudpanel.io/ce/v2/install.sh
