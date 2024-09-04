@@ -16,8 +16,6 @@
         name:
           - curl
           - wget
-          - sudo
-          - git
         state: present
 
     - name: Download the CloudPanel installer script
