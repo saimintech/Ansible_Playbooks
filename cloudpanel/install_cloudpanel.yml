@@ -1,0 +1,34 @@
+---
+- name: Install CloudPanel on Ubuntu 22.04
+  hosts: localhost
+  become: yes
+  tasks:
+    - name: Update the system
+      apt:
+        update_cache: yes
+
+    - name: Upgrade all packages
+      apt:
+        upgrade: dist
+
+    - name: Install required packages
+      apt:
+        name:
+          - curl
+          - wget
+        state: present
+
+    - name: Download the CloudPanel installer script
+      get_url:
+        url: https://installer.cloudpanel.io/ce/v2/install.sh
+        dest: /tmp/install.sh
+        mode: '0755'
+
+    - name: Verify the installer script checksum
+      shell: echo "2aefee646f988877a31198e0d84ed30e2ef7a454857b606608a1f0b8eb6ec6b6 /tmp/install.sh" | sha256sum -c
+      register: checksum_result
+      failed_when: "'OK' not in checksum_result.stdout"
+
+    - name: Run the CloudPanel installer script
+      shell: sudo bash /tmp/install.sh
+      when: checksum_result is succeeded
