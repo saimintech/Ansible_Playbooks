@@ -1,0 +1,78 @@
+---
+- name: Set up Apache to serve static files with Let's Encrypt SSL
+  hosts: localhost
+  become: yes
+  connection: local
+  vars:
+    domain_name: "{{ domain_name }}"
+    document_root: "/var/www/{{ domain_name }}"
+  tasks:
+
+    - name: Install Apache and required packages
+      apt:
+        name:
+          - apache2
+          - python3-certbot-apache
+          - certbot
+        state: present
+        update_cache: yes
+
+    - name: Enable required Apache modules
+      command: a2enmod "{{ item }}"
+      args:
+        creates: "/etc/apache2/mods-enabled/{{ item }}.load"
+      loop:
+        - ssl
+        - headers
+        - rewrite
+      notify:
+        - reload apache
+
+    - name: Create document root directory
+      file:
+        path: "{{ document_root }}"
+        state: directory
+        owner: www-data
+        group: www-data
+        mode: '0755'
+
+    - name: Create a test index.html file
+      copy:
+        dest: "{{ document_root }}/index.html"
+        content: "<html><body><h1>Welcome to {{ domain_name }}</h1></body></html>"
+        owner: www-data
+        group: www-data
+        mode: '0644'
+
+    - name: Obtain Let's Encrypt SSL certificate
+      shell: |
+        certbot certonly --webroot -w "{{ document_root }}" -n --agree-tos --email admin@{{ domain_name }} -d {{ domain_name }}
+      args:
+        creates: "/etc/letsencrypt/live/{{ domain_name }}/fullchain.pem"
+
+    - name: Create Apache virtual host configuration
+      template:
+        src: reverse_proxy.conf.j2
+        dest: "/etc/apache2/sites-available/{{ domain_name }}.conf"
+      notify:
+        - reload apache
+
+    - name: Enable Apache site
+      command: a2ensite "{{ domain_name }}.conf"
+      args:
+        creates: "/etc/apache2/sites-enabled/{{ domain_name }}.conf"
+      notify:
+        - reload apache
+
+    - name: Disable default Apache site
+      command: a2dissite 000-default.conf
+      args:
+        removes: "/etc/apache2/sites-enabled/000-default.conf"
+      notify:
+        - reload apache
+
+  handlers:
+    - name: reload apache
+      service:
+        name: apache2
+        state: reloaded
