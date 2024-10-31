@@ -1,11 +1,10 @@
 <VirtualHost *:80>
     ServerName {{ domain_name }}
     ServerAdmin admin@{{ domain_name }}
+    DocumentRoot {{ webroot_path }}
 
-    DocumentRoot /var/www/html
-
-    # Allow access to the .well-known directory for Certbot
-    <Directory "/var/www/html">
+    # Allow access to the webroot directory
+    <Directory "{{ webroot_path }}">
         AllowOverride None
         Options None
         Require all granted
