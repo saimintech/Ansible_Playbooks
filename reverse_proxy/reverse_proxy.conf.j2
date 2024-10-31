@@ -1,10 +1,19 @@
 <VirtualHost *:80>
     ServerName {{ domain_name }}
     ServerAdmin admin@{{ domain_name }}
+    DocumentRoot {{ webroot_path }}
 
     RewriteEngine On
+    # Exclude Let's Encrypt challenge directory from redirection
     RewriteCond %{REQUEST_URI} !^/\.well-known/acme-challenge/
     RewriteRule ^ https://%{SERVER_NAME}%{REQUEST_URI} [END,NE,R=permanent]
+
+    # Allow access to the webroot directory
+    <Directory "{{ webroot_path }}">
+        AllowOverride None
+        Options None
+        Require all granted
+    </Directory>
 
     ErrorLog ${APACHE_LOG_DIR}/{{ domain_name }}_error.log
     CustomLog ${APACHE_LOG_DIR}/{{ domain_name }}_access.log combined
@@ -13,6 +22,7 @@
 <VirtualHost *:443>
     ServerName {{ domain_name }}
     ServerAdmin admin@{{ domain_name }}
+    DocumentRoot {{ webroot_path }}
 
     SSLEngine on
     SSLCertificateFile /etc/letsencrypt/live/{{ domain_name }}/fullchain.pem
@@ -21,6 +31,13 @@
     ProxyPreserveHost On
     ProxyPass / http://127.0.0.1:{{ local_port }}/
     ProxyPassReverse / http://127.0.0.1:{{ local_port }}/
+
+    # Allow access to the webroot directory
+    <Directory "{{ webroot_path }}">
+        AllowOverride None
+        Options None
+        Require all granted
+    </Directory>
 
     ErrorLog ${APACHE_LOG_DIR}/{{ domain_name }}_ssl_error.log
     CustomLog ${APACHE_LOG_DIR}/{{ domain_name }}_ssl_access.log combined
