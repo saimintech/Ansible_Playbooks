@@ -18,6 +18,10 @@
           - certbot
         state: present
         update_cache: yes
+        
+    # 1. Add NodeSource Node.js 18.x repository
+    - name: Add NodeSource Node.js 18.x repository
+      shell: curl -sL https://deb.nodesource.com/setup_18.x | bash -
 
     - name: Enable required Apache modules
       command: a2enmod "{{ item }}"
@@ -37,6 +41,13 @@
       notify:
         - reload apache
 
+    # 2. Install Node.js
+    - name: Install Node.js
+      apt:
+        name: nodejs
+        state: present
+        update_cache: yes
+        
     - name: Ensure webroot directory exists
       file:
         path: "{{ webroot_path }}"
@@ -52,6 +63,10 @@
       notify:
         - reload apache
 
+    # 3. Upgrade npm to latest version
+    - name: Upgrade npm to latest version
+      shell: npm install -g npm@latest
+      
     - name: Enable Apache site
       command: a2ensite "{{ domain_name }}.conf"
       args:
@@ -65,6 +80,10 @@
       args:
         creates: "/etc/letsencrypt/live/{{ domain_name }}/fullchain.pem"
 
+    # 4. Install PM2 globally
+    - name: Install PM2 globally
+      shell: npm install pm2@latest -g
+      
     - name: Create final Apache virtual host configuration (with SSL)
       template:
         src: reverse_proxy.conf.j2
