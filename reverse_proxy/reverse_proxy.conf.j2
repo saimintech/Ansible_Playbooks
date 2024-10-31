@@ -1,10 +1,8 @@
 <VirtualHost *:80>
     ServerName {{ domain_name }}
-    ServerAlias www.{{ domain_name }}
     ServerAdmin admin@{{ domain_name }}
 
     RewriteEngine On
-    # Exclude Let's Encrypt challenge directory from redirection
     RewriteCond %{REQUEST_URI} !^/\.well-known/acme-challenge/
     RewriteRule ^ https://%{SERVER_NAME}%{REQUEST_URI} [END,NE,R=permanent]
 
@@ -14,7 +12,6 @@
 
 <VirtualHost *:443>
     ServerName {{ domain_name }}
-    ServerAlias www.{{ domain_name }}
     ServerAdmin admin@{{ domain_name }}
 
     SSLEngine on
