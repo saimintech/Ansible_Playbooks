@@ -22,6 +22,8 @@
       args:
         creates: "/etc/apache2/mods-enabled/{{ item }}.load"
       loop:
+        - proxy
+        - proxy_http
         - ssl
         - headers
         - rewrite
@@ -43,13 +45,7 @@
         owner: www-data
         group: www-data
         mode: '0644'
-
-    - name: Obtain Let's Encrypt SSL certificate
-      shell: |
-        certbot --apache -n --agree-tos --redirect --hsts --staple-ocsp --email admin@{{ domain_name }} -d {{ domain_name }}
-      args:
-        creates: "/etc/letsencrypt/live/{{ domain_name }}/fullchain.pem"
-
+        
     - name: Create Apache virtual host configuration
       template:
         src: reverse_proxy.conf.j2
@@ -70,7 +66,13 @@
         removes: "/etc/apache2/sites-enabled/000-default.conf"
       notify:
         - reload apache
-
+        
+    - name: Obtain Let's Encrypt SSL certificate
+      shell: |
+        certbot certonly --apache -n --agree-tos --email admin@{{ domain_name }} -d {{ domain_name }}
+      args:
+        creates: "/etc/letsencrypt/live/{{ domain_name }}/fullchain.pem"
+        
   handlers:
     - name: reload apache
       service:
