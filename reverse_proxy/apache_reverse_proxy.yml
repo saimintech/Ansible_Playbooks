@@ -1,14 +1,16 @@
 ---
-- name: Set up Apache to serve static files with Let's Encrypt SSL
+- name: Set up Apache reverse proxy with Let's Encrypt SSL
   hosts: localhost
   become: yes
   connection: local
   vars:
     domain_name: "{{ domain_name }}"
-    document_root: "/var/www/{{ domain_name }}"
-  tasks:
+    local_port: "{{ local_port }}"
+    webroot_path: "/var/www/html"
+    temp_config: "/etc/apache2/sites-available/{{ domain_name }}.conf"
 
-    - name: Install Apache and required packages
+  tasks:
+    - name: Install Apache and Certbot
       apt:
         name:
           - apache2
@@ -27,29 +29,26 @@
         - ssl
         - headers
         - rewrite
+
+    - name: Disable default Apache site
+      command: a2dissite 000-default.conf
+      args:
+        removes: "/etc/apache2/sites-enabled/000-default.conf"
       notify:
         - reload apache
 
-    - name: Create document root directory
+    - name: Ensure webroot directory exists
       file:
-        path: "{{ document_root }}"
+        path: "{{ webroot_path }}"
         state: directory
         owner: www-data
         group: www-data
         mode: '0755'
 
-    - name: Create a test index.html file
-      copy:
-        dest: "{{ document_root }}/index.html"
-        content: "<html><body><h1>Welcome to {{ domain_name }}</h1></body></html>"
-        owner: www-data
-        group: www-data
-        mode: '0644'
-        
-    - name: Create Apache virtual host configuration
+    - name: Create temporary Apache virtual host configuration (HTTP only)
       template:
-        src: reverse_proxy.conf.j2
-        dest: "/etc/apache2/sites-available/{{ domain_name }}.conf"
+        src: temp_http.conf.j2
+        dest: "{{ temp_config }}"
       notify:
         - reload apache
 
@@ -60,19 +59,19 @@
       notify:
         - reload apache
 
-    - name: Disable default Apache site
-      command: a2dissite 000-default.conf
-      args:
-        removes: "/etc/apache2/sites-enabled/000-default.conf"
-      notify:
-        - reload apache
-        
     - name: Obtain Let's Encrypt SSL certificate
-      shell: |
-        certbot certonly --apache -n --agree-tos --email admin@{{ domain_name }} -d {{ domain_name }}
+      command: >
+        certbot certonly --webroot -w {{ webroot_path }} -n --agree-tos --email admin@{{ domain_name }} -d {{ domain_name }}
       args:
         creates: "/etc/letsencrypt/live/{{ domain_name }}/fullchain.pem"
-        
+
+    - name: Create final Apache virtual host configuration (with SSL)
+      template:
+        src: reverse_proxy.conf.j2
+        dest: "{{ temp_config }}"
+      notify:
+        - reload apache
+
   handlers:
     - name: reload apache
       service:
