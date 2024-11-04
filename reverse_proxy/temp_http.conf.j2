@@ -4,7 +4,7 @@
     DocumentRoot {{ webroot_path }}
 
     # Allow access to the webroot directory
-    <Directory "{{ webroot_path }}">
+    <Directory "/var/www">
         AllowOverride None
         Options None
         Require all granted
