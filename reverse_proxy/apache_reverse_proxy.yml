@@ -6,7 +6,7 @@
   vars:
     domain_name: "{{ domain_name }}"
     local_port: "{{ local_port }}"
-    webroot_path: "/var/www/html"
+    webroot_path: "/var/www/{{ domain_name }}"
     temp_config: "/etc/apache2/sites-available/{{ domain_name }}.conf"
 
   tasks:
