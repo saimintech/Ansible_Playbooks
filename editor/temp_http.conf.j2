@@ -1,0 +1,15 @@
+<VirtualHost *:80>
+    ServerName {{ domain_name }}
+    ServerAdmin admin@{{ domain_name }}
+    DocumentRoot {{ webroot_path }}
+
+    # Allow access to the webroot directory
+    <Directory "/var/www">
+        AllowOverride None
+        Options None
+        Require all granted
+    </Directory>
+
+    ErrorLog ${APACHE_LOG_DIR}/{{ domain_name }}_error.log
+    CustomLog ${APACHE_LOG_DIR}/{{ domain_name }}_access.log combined
+</VirtualHost>
