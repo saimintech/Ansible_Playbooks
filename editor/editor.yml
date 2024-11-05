@@ -17,6 +17,20 @@
         group: www-data
         mode: '0755'
 
+    - name: Create temporary Apache virtual host configuration (HTTP only)
+      template:
+        src: temp_http.conf.j2
+        dest: "{{ temp_config }}"
+      notify:
+        - reload apache
+
+    - name: Enable Apache site
+      command: a2ensite "{{ domain_name }}.conf"
+      args:
+        creates: "/etc/apache2/sites-enabled/{{ domain_name }}.conf"
+      notify:
+        - reload apache
+        
     - name: Copy Editor File 
       template:
         src: editor.php
