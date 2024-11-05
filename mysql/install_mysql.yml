@@ -4,7 +4,9 @@
   become: yes
   connection: local
   vars:
-    mysql_repo_url: "deb [signed-by=/usr/share/keyrings/mysql.gpg] http://repo.mysql.com/apt/ubuntu/ {{ ansible_distribution_release }} mysql-8.0"
+    mysql_apt_config_package: "mysql-apt-config_0.8.26-1_all.deb"
+    mysql_apt_config_url: "https://dev.mysql.com/get/{{ mysql_apt_config_package }}"
+    mysql_root_password: "{{ mysql_root_password }}"
     mysql_unix_socket: /var/run/mysqld/mysqld.sock
 
   tasks:
@@ -15,22 +17,29 @@
           - gnupg
           - apt-transport-https
           - ca-certificates
+          - wget
         state: present
         update_cache: yes
 
-    - name: Add MySQL APT repository GPG key
-      ansible.builtin.get_url:
-        url: https://repo.mysql.com/RPM-GPG-KEY-mysql-2022
-        dest: /usr/share/keyrings/mysql.gpg
+    - name: Download MySQL APT configuration package
+      get_url:
+        url: "{{ mysql_apt_config_url }}"
+        dest: "/tmp/{{ mysql_apt_config_package }}"
         mode: '0644'
 
-    - name: Add MySQL APT repository
-      ansible.builtin.apt_repository:
-        repo: "{{ mysql_repo_url }}"
-        filename: mysql
-        state: present
+    - name: Set debconf selections for mysql-apt-config
+      debconf:
+        name: 'mysql-apt-config'
+        question: 'mysql-apt-config/select-server'
+        value: 'mysql-8.0'
+        vtype: 'select'
 
-    - name: Update apt cache after adding MySQL repo
+    - name: Install MySQL APT configuration package
+      dpkg:
+        name: "/tmp/{{ mysql_apt_config_package }}"
+        force: yes
+
+    - name: Update apt cache
       apt:
         update_cache: yes
 
