@@ -1,80 +1,42 @@
 ---
-- name: Install latest MySQL on Ubuntu 22.04
+- name: Install MySQL on Ubuntu 22.04
   hosts: localhost
   become: yes
   connection: local
   vars:
-    mysql_apt_config_package: "mysql-apt-config_0.8.26-1_all.deb"
-    mysql_apt_config_url: "https://dev.mysql.com/get/{{ mysql_apt_config_package }}"
     mysql_root_password: "{{ mysql_root_password }}"
-    mysql_unix_socket: /var/run/mysqld/mysqld.sock
-
   tasks:
-    - name: Install prerequisites
-      apt:
-        name:
-          - lsb-release
-          - gnupg
-          - apt-transport-https
-          - ca-certificates
-          - wget
-        state: present
-        update_cache: yes
-
-    - name: Download MySQL APT configuration package
-      get_url:
-        url: "{{ mysql_apt_config_url }}"
-        dest: "/tmp/{{ mysql_apt_config_package }}"
-        mode: '0644'
-
-    - name: Set debconf selections for mysql-apt-config
-      debconf:
-        name: 'mysql-apt-config'
-        question: 'mysql-apt-config/select-server'
-        value: 'mysql-8.0'
-        vtype: 'select'
-
-    - name: Install MySQL APT configuration package
-      dpkg:
-        name: "/tmp/{{ mysql_apt_config_package }}"
-        force: yes
-
-    - name: Update apt cache
-      apt:
-        update_cache: yes
-
-    - name: Set debconf selections for MySQL root password
-      debconf:
-        name: "mysql-server"
-        question: "{{ item.question }}"
-        value: "{{ mysql_root_password }}"
-        vtype: "{{ item.vtype }}"
-      loop:
-        - { question: 'mysql-server/root_password', vtype: 'password' }
-        - { question: 'mysql-server/root_password_again', vtype: 'password' }
-      when: mysql_root_password is defined
-
     - name: Install MySQL server
       apt:
         name: mysql-server
         state: present
+        update_cache: yes
 
-    - name: Ensure MySQL service is started
+    - name: Ensure MySQL service is started and enabled
       service:
         name: mysql
         state: started
         enabled: yes
 
-    - name: Update MySQL root user password and authentication method
+    - name: Ensure python3-pip is installed
+      apt:
+        name: python3-pip
+        state: present
+
+    - name: Install PyMySQL for Python 3
+      pip:
+        name: PyMySQL
+        executable: pip3
+
+    - name: Set MySQL root password and authentication method
       mysql_user:
         name: root
         host: localhost
         password: "{{ mysql_root_password }}"
-        priv: '*.*:ALL,GRANT'
-        auth_plugin: mysql_native_password
-        login_unix_socket: "{{ mysql_unix_socket }}"
+        login_unix_socket: /var/run/mysqld/mysqld.sock
         check_implicit_admin: yes
-      when: mysql_root_password is defined
+        priv: '*.*:ALL,GRANT'
+        plugin: mysql_native_password
 
     - name: Remove anonymous MySQL users
       mysql_user:
@@ -83,7 +45,6 @@
         state: absent
         login_user: root
         login_password: "{{ mysql_root_password }}"
-      when: mysql_root_password is defined
 
     - name: Remove the test database
       mysql_db:
@@ -91,7 +52,6 @@
         state: absent
         login_user: root
         login_password: "{{ mysql_root_password }}"
-      when: mysql_root_password is defined
 
     - name: Reload MySQL privilege tables
       mysql_db:
@@ -99,4 +59,3 @@
         state: present
         login_user: root
         login_password: "{{ mysql_root_password }}"
-      when: mysql_root_password is defined
