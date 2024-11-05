@@ -35,7 +35,7 @@
         
     - name: Create final Apache virtual host configuration (with SSL)
       template:
-        src: add_site.conf.j2
+        src: virtualhost.conf.j2
         dest: "{{ temp_config }}"
       notify:
         - reload apache
