@@ -1,0 +1,90 @@
+---
+- name: Install latest MySQL on Ubuntu 22.04
+  hosts: all
+  become: yes
+  vars:
+    # Provide the MySQL root password as a parameter or via an external variable file
+    mysql_root_password: "{{ mysql_root_password }}"
+    mysql_apt_key_url: "https://repo.mysql.com/RPM-GPG-KEY-mysql-2022"
+    mysql_repo_url: "deb http://repo.mysql.com/apt/ubuntu/ {{ ansible_distribution_release }} mysql-8.0"
+    mysql_unix_socket: /var/run/mysqld/mysqld.sock
+
+  tasks:
+    - name: Install prerequisites
+      apt:
+        name:
+          - lsb-release
+          - gnupg
+          - apt-transport-https
+          - ca-certificates
+        state: present
+        update_cache: yes
+
+    - name: Add MySQL APT repository GPG key
+      apt_key:
+        url: "{{ mysql_apt_key_url }}"
+        state: present
+
+    - name: Add MySQL APT repository
+      apt_repository:
+        repo: "{{ mysql_repo_url }}"
+        filename: mysql
+        state: present
+
+    - name: Update apt cache after adding MySQL repo
+      apt:
+        update_cache: yes
+
+    - name: Set debconf selections for MySQL root password
+      debconf:
+        name: "mysql-server"
+        question: "{{ item.question }}"
+        value: "{{ mysql_root_password }}"
+        vtype: "{{ item.vtype }}"
+      loop:
+        - { question: 'mysql-server/root_password', vtype: 'password' }
+        - { question: 'mysql-server/root_password_again', vtype: 'password' }
+
+    - name: Install MySQL server
+      apt:
+        name: mysql-server
+        state: present
+
+    - name: Ensure MySQL service is started
+      service:
+        name: mysql
+        state: started
+        enabled: yes
+
+    - name: Update MySQL root user password and authentication method
+      mysql_user:
+        name: root
+        host: localhost
+        password: "{{ mysql_root_password }}"
+        priv: '*.*:ALL,GRANT'
+        auth_plugin: mysql_native_password
+        login_unix_socket: "{{ mysql_unix_socket }}"
+        check_implicit_admin: yes
+
+    - name: Remove anonymous MySQL users
+      mysql_user:
+        name: ''
+        host_all: yes
+        state: absent
+        login_user: root
+        login_password: "{{ mysql_root_password }}"
+
+    - name: Remove the test database
+      mysql_db:
+        name: test
+        state: absent
+        login_user: root
+        login_password: "{{ mysql_root_password }}"
+
+    - name: Reload MySQL privilege tables
+      command: mysqladmin flush-privileges -p"{{ mysql_root_password }}"
+      args:
+        creates: /tmp/mysql_flushed
+      register: flush_privileges
+      changed_when: flush_privileges.rc == 0
+
