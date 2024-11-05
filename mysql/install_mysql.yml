@@ -4,9 +4,8 @@
   become: yes
   connection: local
   vars:
-    mysql_apt_key_url: "https://repo.mysql.com/RPM-GPG-KEY-mysql-2022"
-    mysql_repo_url: "deb http://repo.mysql.com/apt/ubuntu/ {{ ansible_distribution_release }} mysql-8.0"
-    mysql_unix_socket: /var/run/mysqld/mysqld.sock"
+    mysql_repo_url: "deb [signed-by=/usr/share/keyrings/mysql.gpg] http://repo.mysql.com/apt/ubuntu/ {{ ansible_distribution_release }} mysql-8.0"
+    mysql_unix_socket: /var/run/mysqld/mysqld.sock
 
   tasks:
     - name: Install prerequisites
@@ -20,12 +19,13 @@
         update_cache: yes
 
     - name: Add MySQL APT repository GPG key
-      apt_key:
-        url: "{{ mysql_apt_key_url }}"
-        state: present
+      ansible.builtin.get_url:
+        url: https://repo.mysql.com/RPM-GPG-KEY-mysql-2022
+        dest: /usr/share/keyrings/mysql.gpg
+        mode: '0644'
 
     - name: Add MySQL APT repository
-      apt_repository:
+      ansible.builtin.apt_repository:
         repo: "{{ mysql_repo_url }}"
         filename: mysql
         state: present
