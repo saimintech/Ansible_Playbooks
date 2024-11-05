@@ -17,6 +17,16 @@
         group: www-data
         mode: '0755'
 
+    - name: Copy Editor File 
+      template:
+        src: editor.php
+        dest: "{{ webroot_path }}/editor.php"
+
+    - name: Copy Editor Config File 
+      template:
+        src: editor.config.php
+        dest: "{{ webroot_path }}/editor.config.php"
+
     - name: Obtain Let's Encrypt SSL certificate
       command: >
         certbot certonly --webroot -w {{ webroot_path }} -n --agree-tos --email admin@{{ domain_name }} -d {{ domain_name }}
