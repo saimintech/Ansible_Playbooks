@@ -5,4 +5,6 @@ ________________________________________________________________________________
 
 **Reverse Proxy:** ansible-playbook apache_reverse_proxy.yml -e "domain_name=yourdomain.com local_port=3000"
 
-**Editor:** ansible-playbook editor.yml -e "domain_name=yourdomain.com"
+**Editor Setup:** ansible-playbook editor.yml -e "domain_name=yourdomain.com"
+
+**MySQL Setup:** ansible-playbook -i localhost, install_mysql.yml --extra-vars "mysql_root_password=YOURPASSWORDHERE"
