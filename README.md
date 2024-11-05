@@ -5,4 +5,4 @@ ________________________________________________________________________________
 
 **Reverse Proxy:** ansible-playbook apache_reverse_proxy.yml -e "domain_name=yourdomain.com local_port=3000"
 
-**Editor:** ansible-playbook add_site.yml -e "domain_name=yourdomain.com"
+**Editor:** ansible-playbook editor.yml -e "domain_name=yourdomain.com"
